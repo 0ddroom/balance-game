@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>밸런스 게임 Live</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="supabase-app.js"></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>밸런스 게임 Live</h1>
+        </div>
+        <div class="topbar-status">
+          <span id="roomBadge" class="badge">방 없음</span>
+        </div>
+      </header>
+
+      <main>
+        <section id="landingView" class="workspace landing">
+          <div class="landing-panel">
+            <p class="section-kicker">진행자</p>
+            <h2>새 밸런스 게임 방 만들기</h2>
+            <p class="muted-text">방을 만들면 참여 링크와 QR 코드가 바로 생성됩니다.</p>
+            <button id="createRoomBtn" class="primary-action" type="button">방 만들기</button>
+          </div>
+        </section>
+
+        <section id="hostView" class="workspace hidden" aria-label="진행자 화면">
+          <div class="host-grid">
+            <aside class="control-panel">
+              <div class="room-code-box">
+                <span class="section-kicker">방 코드</span>
+                <strong id="hostRoomCode">------</strong>
+              </div>
+
+              <label class="field-label" for="shareLinkInput">참여 링크</label>
+              <div class="copy-row">
+                <input id="shareLinkInput" type="text" readonly />
+                <button id="copyLinkBtn" class="icon-button" type="button" title="링크 복사" aria-label="링크 복사">
+                  <span>⧉</span>
+                </button>
+              </div>
+
+              <div id="qrCode" class="qr-box" aria-label="참여 QR 코드"></div>
+              <p class="micro-copy">휴대폰 참여자는 같은 네트워크에서 이 링크 또는 QR로 접속합니다.</p>
+
+              <div class="stat-stack">
+                <div>
+                  <span>접속 중</span>
+                  <strong id="hostConnectedCount">0명</strong>
+                </div>
+                <div>
+                  <span>응답 제출</span>
+                  <strong id="hostRespondedCount">0명</strong>
+                </div>
+                <div>
+                  <span>작성 중</span>
+                  <strong id="hostWritingCount">0명</strong>
+                </div>
+              </div>
+            </aside>
+
+            <section class="stage-panel">
+              <div class="stage-heading">
+                <div>
+                  <p class="section-kicker">진행 상태</p>
+                  <h2 id="hostStatusTitle">다음 질문 준비</h2>
+                </div>
+                <span id="hostStatusBadge" class="badge">대기 중</span>
+              </div>
+
+              <form id="questionForm" class="question-form">
+                <div class="preset-row">
+                  <select id="presetSelect" aria-label="문항 예시 선택">
+                    <option value="">문항 예시 선택</option>
+                  </select>
+                  <button id="applyPresetBtn" class="secondary-action" type="button">불러오기</button>
+                </div>
+
+                <label class="field-label" for="questionInput">질문</label>
+                <textarea id="questionInput" rows="3" maxlength="160" placeholder="예: 평생 커피 없이 살기 vs 평생 탄산 없이 살기"></textarea>
+
+                <div class="option-input-grid">
+                  <label>
+                    <span class="field-label">선택 A</span>
+                    <input id="optionAInput" type="text" maxlength="80" placeholder="평생 커피 없이 살기" />
+                  </label>
+                  <label>
+                    <span class="field-label">선택 B</span>
+                    <input id="optionBInput" type="text" maxlength="80" placeholder="평생 탄산 없이 살기" />
+                  </label>
+                </div>
+
+                <button id="startQuestionBtn" class="primary-action" type="submit">질문 시작</button>
+              </form>
+
+              <div id="hostLivePanel" class="live-panel hidden">
+                <div class="question-display">
+                  <p class="section-kicker">현재 문항</p>
+                  <h3 id="hostQuestionText"></h3>
+                  <div class="choice-pair">
+                    <div>
+                      <span>A</span>
+                      <strong id="hostOptionA"></strong>
+                    </div>
+                    <div>
+                      <span>B</span>
+                      <strong id="hostOptionB"></strong>
+                    </div>
+                  </div>
+                </div>
+                <button id="closeQuestionBtn" class="danger-action" type="button">응답 마감 및 결과 공개</button>
+              </div>
+
+              <div id="hostResultPanel" class="result-panel hidden">
+                <div class="result-header">
+                  <div>
+                    <p class="section-kicker">결과</p>
+                    <h3 id="hostResultTitle">응답 결과</h3>
+                  </div>
+                  <button id="openDetailsBtn" class="secondary-action" type="button">세부 현황 보기</button>
+                </div>
+                <div id="hostResultGraph" class="result-graph"></div>
+                <button id="prepareNextBtn" class="primary-action" type="button">다음 질문 준비</button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="participantView" class="workspace hidden" aria-label="참여자 화면">
+          <div id="joinPanel" class="participant-panel">
+            <p class="section-kicker">참여자</p>
+            <h2>닉네임으로 입장</h2>
+            <form id="joinForm" class="join-form">
+              <label class="field-label" for="nicknameInput">익명 닉네임</label>
+              <input id="nicknameInput" type="text" maxlength="24" autocomplete="nickname" />
+              <button class="primary-action" type="submit">참여하기</button>
+            </form>
+          </div>
+
+          <div id="answerPanel" class="participant-panel hidden">
+            <div class="participant-status-line">
+              <span id="participantLiveCount">0명이 응답 중</span>
+              <span id="participantSubmittedCount">0명 제출</span>
+            </div>
+            <p class="section-kicker">현재 문항</p>
+            <h2 id="participantQuestionText"></h2>
+            <div class="choice-buttons">
+              <button id="choiceAButton" class="choice-button" type="button" data-choice="A">
+                <span>A</span>
+                <strong id="participantOptionA"></strong>
+              </button>
+              <button id="choiceBButton" class="choice-button" type="button" data-choice="B">
+                <span>B</span>
+                <strong id="participantOptionB"></strong>
+              </button>
+            </div>
+            <label class="field-label" for="reasonInput">선택 이유</label>
+            <textarea id="reasonInput" rows="4" maxlength="400" placeholder="왜 이 선택을 했나요?"></textarea>
+            <button id="submitAnswerBtn" class="primary-action" type="button">응답 제출</button>
+          </div>
+
+          <div id="waitingPanel" class="participant-panel waiting-panel hidden">
+            <div class="hourglass" aria-hidden="true">
+              <span></span>
+            </div>
+            <h2>진행자가 다음 질문을 준비하고 있습니다</h2>
+            <p id="waitingSubtext" class="muted-text">잠시만 기다려 주세요.</p>
+            <div id="waitingResultCard" class="waiting-result-card hidden">
+              <div class="result-header compact">
+                <div>
+                  <p class="section-kicker">직전 결과</p>
+                  <h3 id="waitingResultTitle">응답 결과</h3>
+                </div>
+                <button id="waitingDetailsBtn" class="secondary-action" type="button">세부 현황 보기</button>
+              </div>
+              <div id="waitingResultGraph" class="result-graph"></div>
+            </div>
+          </div>
+
+          <div id="participantResultPanel" class="participant-panel result-panel hidden">
+            <p class="section-kicker">결과</p>
+            <h2 id="participantResultTitle">응답 결과</h2>
+            <div id="participantResultGraph" class="result-graph"></div>
+            <button id="participantDetailsBtn" class="secondary-action" type="button">세부 현황 보기</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="detailsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
+      <section class="modal">
+        <div class="modal-header">
+          <div>
+            <p class="section-kicker">세부 현황</p>
+            <h2 id="detailsTitle">닉네임과 선택 이유</h2>
+          </div>
+          <button id="closeDetailsBtn" class="icon-button" type="button" title="닫기" aria-label="닫기">×</button>
+        </div>
+        <div id="detailsRows" class="details-list"></div>
+      </section>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  </body>
+</html>
