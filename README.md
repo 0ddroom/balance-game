@@ -10,10 +10,7 @@
 
 ## Supabase 설정
 
-1. Supabase 프로젝트를 만듭니다.
-2. SQL Editor에서 [supabase/schema.sql](supabase/schema.sql)을 실행합니다.
-3. Project Settings > API에서 Project URL과 anon/public key를 확인합니다.
-4. [public/config.js](public/config.js)에 값을 넣습니다.
+현재 배포용 Supabase 프로젝트에는 필요한 SQL 설정이 적용되어 있습니다. 새 프로젝트로 옮길 때는 이 작업 폴더의 `supabase/schema.sql`을 SQL Editor에서 실행한 뒤 [public/config.js](public/config.js)에 값을 넣습니다.
 
 ```js
 window.BALANCE_GAME_CONFIG = {
@@ -33,22 +30,6 @@ window.BALANCE_GAME_CONFIG = {
 - 배포 대상: `public/`
 
 GitHub 저장소에 푸시한 뒤 Settings > Pages에서 Source를 GitHub Actions로 설정하면 자동 배포됩니다.
-
-## 로컬 실행
-
-Supabase 없이 로컬 Node 서버로도 테스트할 수 있습니다.
-
-```powershell
-node server.js
-```
-
-진행자 화면:
-
-```text
-http://localhost:3030/?host=1
-```
-
-`public/config.js`에 Supabase 값이 비어 있으면 기존 Node 서버 방식으로 작동합니다. Supabase 값을 넣으면 정적 배포 방식으로 작동합니다.
 
 ## 기능
 
