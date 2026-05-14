@@ -18,6 +18,9 @@
         </div>
         <div class="topbar-status">
           <span id="roomBadge" class="badge">방 없음</span>
+          <button id="soundToggleBtn" class="sound-toggle" type="button" aria-pressed="true" title="사운드 켜짐">
+            <span aria-hidden="true">♪</span>
+          </button>
         </div>
       </header>
 
@@ -127,7 +130,20 @@
                   <button id="openDetailsBtn" class="secondary-action" type="button">세부 현황 보기</button>
                 </div>
                 <div id="hostResultGraph" class="result-graph"></div>
-                <button id="prepareNextBtn" class="primary-action" type="button">다음 질문 준비</button>
+                <div class="host-result-actions">
+                  <button id="prepareNextBtn" class="primary-action" type="button">다음 질문 준비</button>
+                  <button id="endGameBtn" class="danger-action" type="button">게임 종료</button>
+                </div>
+              </div>
+
+              <div id="hostEndPanel" class="host-end-panel hidden">
+                <button id="endGameWaitingBtn" class="danger-action" type="button">게임 종료</button>
+              </div>
+
+              <div id="hostEndedPanel" class="end-panel hidden">
+                <p class="section-kicker">Game Over</p>
+                <h3>밸런스 게임이 종료되었습니다</h3>
+                <p class="muted-text">참여자 화면에도 종료 안내가 표시됩니다.</p>
               </div>
             </section>
           </div>
@@ -193,6 +209,22 @@
             <h2 id="participantResultTitle">응답 결과</h2>
             <div id="participantResultGraph" class="result-graph"></div>
             <button id="participantDetailsBtn" class="secondary-action" type="button">세부 현황 보기</button>
+          </div>
+
+          <div id="endedPanel" class="participant-panel ended-panel hidden">
+            <p class="section-kicker">Game Over</p>
+            <h2>밸런스 게임이 종료되었습니다</h2>
+            <p class="muted-text">참여해 주셔서 감사합니다.</p>
+            <div id="endedResultCard" class="waiting-result-card hidden">
+              <div class="result-header compact">
+                <div>
+                  <p class="section-kicker">최종 결과</p>
+                  <h3 id="endedResultTitle">응답 결과</h3>
+                </div>
+                <button id="endedDetailsBtn" class="secondary-action" type="button">세부 현황 보기</button>
+              </div>
+              <div id="endedResultGraph" class="result-graph"></div>
+            </div>
           </div>
         </section>
       </main>

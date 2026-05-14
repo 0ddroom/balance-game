@@ -46,6 +46,7 @@ if (useSupabase) {
 
   const els = {
     roomBadge: $("roomBadge"),
+    soundToggleBtn: $("soundToggleBtn"),
     landingView: $("landingView"),
     createRoomBtn: $("createRoomBtn"),
     hostView: $("hostView"),
@@ -75,6 +76,10 @@ if (useSupabase) {
     hostResultGraph: $("hostResultGraph"),
     openDetailsBtn: $("openDetailsBtn"),
     prepareNextBtn: $("prepareNextBtn"),
+    endGameBtn: $("endGameBtn"),
+    endGameWaitingBtn: $("endGameWaitingBtn"),
+    hostEndPanel: $("hostEndPanel"),
+    hostEndedPanel: $("hostEndedPanel"),
     joinPanel: $("joinPanel"),
     joinForm: $("joinForm"),
     nicknameInput: $("nicknameInput"),
@@ -102,6 +107,11 @@ if (useSupabase) {
     participantResultTitle: $("participantResultTitle"),
     participantResultGraph: $("participantResultGraph"),
     participantDetailsBtn: $("participantDetailsBtn"),
+    endedPanel: $("endedPanel"),
+    endedResultCard: $("endedResultCard"),
+    endedResultTitle: $("endedResultTitle"),
+    endedResultGraph: $("endedResultGraph"),
+    endedDetailsBtn: $("endedDetailsBtn"),
     detailsModal: $("detailsModal"),
     detailsRows: $("detailsRows"),
     closeDetailsBtn: $("closeDetailsBtn"),
@@ -120,6 +130,7 @@ if (useSupabase) {
   let onlineParticipants = 0;
 
   const clientId = getClientId();
+  const soundEngine = createSoundEngine();
 
   bindEvents();
   init();
@@ -148,10 +159,19 @@ if (useSupabase) {
     els.applyPresetBtn.addEventListener("click", applyPreset);
     els.closeQuestionBtn.addEventListener("click", closeQuestion);
     els.prepareNextBtn.addEventListener("click", prepareNext);
+    els.endGameBtn.addEventListener("click", endGame);
+    els.endGameWaitingBtn.addEventListener("click", endGame);
     els.openDetailsBtn.addEventListener("click", openDetails);
     els.waitingDetailsBtn.addEventListener("click", openDetails);
     els.participantDetailsBtn.addEventListener("click", openDetails);
+    els.endedDetailsBtn.addEventListener("click", openDetails);
     els.closeDetailsBtn.addEventListener("click", closeDetails);
+    els.soundToggleBtn.addEventListener("click", () => soundEngine.toggleMuted());
+    document.addEventListener("pointerdown", () => soundEngine.unlock(), { passive: true });
+    document.addEventListener("keydown", () => soundEngine.unlock());
+    document.addEventListener("click", (event) => {
+      if (event.target.closest("button")) soundEngine.playClick();
+    });
     els.detailsModal.addEventListener("click", (event) => {
       if (event.target === els.detailsModal) closeDetails();
     });
@@ -231,6 +251,7 @@ if (useSupabase) {
     if (localStorage.getItem(joinedKey()) === "1") {
       joinRoom(new Event("submit"));
     } else {
+      loadState();
       renderParticipant();
     }
   }
@@ -331,11 +352,16 @@ if (useSupabase) {
       writing: Math.max(connected - (counts.responded || 0), 0),
     };
 
+    document.body.dataset.roomStatus = state.status || "landing";
+    document.body.dataset.role = role;
+
     if (role === "host") {
       renderHost();
     } else {
       renderParticipant();
     }
+
+    syncSound();
   }
 
   function renderHost() {
@@ -345,11 +371,19 @@ if (useSupabase) {
     els.hostWritingCount.textContent = `${state.counts.writing}명`;
     els.hostStatusBadge.textContent = statusText(state.status);
     els.hostStatusTitle.textContent =
-      state.status === "active" ? "응답을 받고 있습니다" : state.status === "closed" ? "결과 공개 중" : "다음 질문 준비";
+      state.status === "active"
+        ? "응답을 받고 있습니다"
+        : state.status === "closed"
+          ? "결과 공개 중"
+          : state.status === "ended"
+            ? "게임 종료"
+            : "다음 질문 준비";
 
     els.questionForm.classList.toggle("hidden", state.status !== "waiting");
     els.hostLivePanel.classList.toggle("hidden", state.status !== "active");
     els.hostResultPanel.classList.toggle("hidden", state.status !== "closed");
+    els.hostEndPanel.classList.toggle("hidden", !["waiting"].includes(state.status));
+    els.hostEndedPanel.classList.toggle("hidden", state.status !== "ended");
 
     if (state.question) {
       els.hostQuestionText.textContent = state.question.text;
@@ -370,6 +404,14 @@ if (useSupabase) {
     els.waitingPanel.classList.add("hidden");
     els.waitingResultCard.classList.add("hidden");
     els.participantResultPanel.classList.add("hidden");
+    els.endedPanel.classList.add("hidden");
+    els.endedResultCard.classList.add("hidden");
+
+    if (state?.status === "ended") {
+      els.joinPanel.classList.add("hidden");
+      renderEndedPanel();
+      return;
+    }
 
     if (!joined) return;
 
@@ -414,6 +456,16 @@ if (useSupabase) {
       subtext: "잠시만 기다려 주세요.",
       showLastRound: Boolean(state.lastRound),
     });
+  }
+
+  function renderEndedPanel() {
+    els.endedPanel.classList.remove("hidden");
+
+    if (state.lastRound?.results) {
+      els.endedResultCard.classList.remove("hidden");
+      els.endedResultTitle.textContent = state.lastRound.question?.text || "최종 응답 결과";
+      renderResultGraph(els.endedResultGraph, state.lastRound.results);
+    }
   }
 
   function renderHostShareInfo() {
@@ -520,6 +572,24 @@ if (useSupabase) {
       await broadcastUpdate();
     } catch (error) {
       showToast(error.message);
+    }
+  }
+
+  async function endGame() {
+    try {
+      const { error } = await client.rpc("balance_end_game", {
+        p_room_id: roomId,
+        p_host_key: hostKey,
+      });
+      if (error) throw error;
+
+      await broadcastUpdate();
+    } catch (error) {
+      if (String(error.message).includes("balance_end_game")) {
+        showToast("Supabase에 종료 기능 SQL을 먼저 적용해 주세요.");
+      } else {
+        showToast(error.message);
+      }
     }
   }
 
@@ -647,9 +717,256 @@ if (useSupabase) {
       .replace(/\/+$/, "");
   }
 
+  function syncSound() {
+    if (!state) {
+      soundEngine.setMode("none");
+      return;
+    }
+
+    if (role === "participant" && localStorage.getItem(joinedKey()) !== "1") {
+      soundEngine.setMode("none");
+      return;
+    }
+
+    const submittedCurrentQuestion =
+      role === "participant" && state.userResponse?.questionId && state.userResponse.questionId === state.question?.id;
+
+    if (state.status === "active") {
+      soundEngine.setMode(submittedCurrentQuestion ? "peaceful" : "tense");
+      return;
+    }
+
+    if (state.status === "waiting" || state.status === "closed") {
+      soundEngine.setMode("peaceful");
+      return;
+    }
+
+    soundEngine.setMode("none");
+  }
+
+  function createSoundEngine() {
+    let context = null;
+    let masterGain = null;
+    let musicGain = null;
+    let sfxGain = null;
+    let musicTimer = null;
+    let requestedMode = "none";
+    let activeMode = "none";
+    let step = 0;
+    let muted = localStorage.getItem("balanceGameSound") === "off";
+
+    updateSoundButton();
+
+    function setup() {
+      if (context) return;
+
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+
+      context = new AudioContext();
+      masterGain = context.createGain();
+      musicGain = context.createGain();
+      sfxGain = context.createGain();
+
+      masterGain.gain.value = muted ? 0 : 0.82;
+      musicGain.gain.value = 0.72;
+      sfxGain.gain.value = 0.56;
+
+      musicGain.connect(masterGain);
+      sfxGain.connect(masterGain);
+      masterGain.connect(context.destination);
+    }
+
+    function unlock() {
+      setup();
+      if (!context) return;
+
+      if (context.state === "suspended") {
+        context.resume();
+      }
+
+      if (!muted) startMode(requestedMode);
+    }
+
+    function setMode(mode) {
+      requestedMode = mode;
+      if (mode === "none") {
+        stopMusic();
+        return;
+      }
+
+      if (!context || muted) return;
+      startMode(mode);
+    }
+
+    function startMode(mode) {
+      if (!context || muted || activeMode === mode) return;
+
+      stopMusic();
+      activeMode = mode;
+      step = 0;
+
+      if (mode === "tense") {
+        runTenseStep();
+        musicTimer = window.setInterval(runTenseStep, 120);
+      } else if (mode === "peaceful") {
+        runPeacefulStep();
+        musicTimer = window.setInterval(runPeacefulStep, 1800);
+      }
+    }
+
+    function stopMusic() {
+      if (musicTimer) {
+        window.clearInterval(musicTimer);
+        musicTimer = null;
+      }
+      activeMode = "none";
+    }
+
+    function runTenseStep() {
+      const notes = [110, 130.81, 146.83, 164.81, 196, 185, 146.83, 130.81];
+      const note = notes[step % notes.length];
+
+      playTone(note, "sawtooth", 0.12, 0.035, 0, musicGain);
+      playTone(note * 2, "square", 0.08, 0.012, 0.015, musicGain);
+
+      if (step % 4 === 0) playKick();
+      if (step % 2 === 1) playNoise(0.035, 0.018, 0, 5200);
+
+      step += 1;
+    }
+
+    function runPeacefulStep() {
+      const chords = [
+        [196, 246.94, 329.63],
+        [174.61, 220, 293.66],
+        [207.65, 261.63, 329.63],
+        [164.81, 246.94, 329.63],
+      ];
+      const chord = chords[step % chords.length];
+
+      chord.forEach((frequency, index) => {
+        playTone(frequency, "sine", 1.65, 0.018, index * 0.045, musicGain);
+      });
+      playTone(chord[2] * 2, "triangle", 0.46, 0.016, 0.42, musicGain);
+
+      step += 1;
+    }
+
+    function playClick() {
+      unlock();
+      if (!context || muted) return;
+
+      playTone(620, "triangle", 0.075, 0.045, 0, sfxGain, 0.64);
+      playTone(930, "sine", 0.06, 0.018, 0.03, sfxGain);
+    }
+
+    function playKick() {
+      if (!context) return;
+
+      const start = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(88, start);
+      oscillator.frequency.exponentialRampToValueAtTime(42, start + 0.16);
+
+      gain.gain.setValueAtTime(0.08, start);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+
+      oscillator.connect(gain);
+      gain.connect(musicGain);
+      oscillator.start(start);
+      oscillator.stop(start + 0.19);
+    }
+
+    function playNoise(duration, amount, delay, cutoff) {
+      if (!context) return;
+
+      const start = context.currentTime + delay;
+      const frameCount = Math.max(1, Math.ceil(context.sampleRate * duration));
+      const buffer = context.createBuffer(1, frameCount, context.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let index = 0; index < data.length; index += 1) {
+        data[index] = Math.random() * 2 - 1;
+      }
+
+      const source = context.createBufferSource();
+      const filter = context.createBiquadFilter();
+      const gain = context.createGain();
+
+      source.buffer = buffer;
+      filter.type = "highpass";
+      filter.frequency.value = cutoff;
+      gain.gain.setValueAtTime(amount, start);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(musicGain);
+      source.start(start);
+      source.stop(start + duration);
+    }
+
+    function playTone(frequency, type, duration, amount, delay, destination, glideRatio = 1) {
+      if (!context || !destination) return;
+
+      const start = context.currentTime + delay;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, start);
+      if (glideRatio !== 1) {
+        oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, frequency * glideRatio), start + duration);
+      }
+
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(amount, start + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+      oscillator.connect(gain);
+      gain.connect(destination);
+      oscillator.start(start);
+      oscillator.stop(start + duration + 0.02);
+    }
+
+    function toggleMuted() {
+      setup();
+      muted = !muted;
+      localStorage.setItem("balanceGameSound", muted ? "off" : "on");
+      updateSoundButton();
+
+      if (!context) return;
+
+      masterGain.gain.setTargetAtTime(muted ? 0 : 0.82, context.currentTime, 0.03);
+      if (muted) {
+        stopMusic();
+      } else {
+        unlock();
+        startMode(requestedMode);
+      }
+    }
+
+    function updateSoundButton() {
+      els.soundToggleBtn.setAttribute("aria-pressed", String(!muted));
+      els.soundToggleBtn.title = muted ? "사운드 꺼짐" : "사운드 켜짐";
+      els.soundToggleBtn.querySelector("span").textContent = muted ? "×" : "♪";
+    }
+
+    return {
+      playClick,
+      setMode,
+      toggleMuted,
+      unlock,
+    };
+  }
+
   function statusText(status) {
     if (status === "active") return "응답 진행 중";
     if (status === "closed") return "결과 공개";
+    if (status === "ended") return "게임 종료";
     return "대기 중";
   }
 
