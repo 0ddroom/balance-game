@@ -48,7 +48,7 @@
               </div>
 
               <div id="qrCode" class="qr-box" aria-label="참여 QR 코드"></div>
-              <p class="micro-copy">휴대폰 참여자는 같은 네트워크에서 이 링크 또는 QR로 접속합니다.</p>
+              <p class="micro-copy">참여자는 이 링크 또는 QR 코드로 바로 접속합니다.</p>
 
               <div class="stat-stack">
                 <div>
@@ -170,7 +170,11 @@
             <div class="hourglass" aria-hidden="true">
               <span></span>
             </div>
-            <h2>진행자가 다음 질문을 준비하고 있습니다</h2>
+            <h2 id="waitingTitle">진행자가 다음 질문을 준비하고 있습니다</h2>
+            <div id="waitingLiveStatus" class="waiting-live-status hidden" aria-live="polite">
+              <span id="waitingWritingCount">0명 응답 중</span>
+              <span id="waitingSubmittedCount">0명 제출</span>
+            </div>
             <p id="waitingSubtext" class="muted-text">잠시만 기다려 주세요.</p>
             <div id="waitingResultCard" class="waiting-result-card hidden">
               <div class="result-header compact">

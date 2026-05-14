@@ -459,6 +459,25 @@ select:focus {
   text-align: center;
 }
 
+.waiting-live-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.waiting-live-status span {
+  background: #eef5f2;
+  border: 1px solid #c9ddd5;
+  border-radius: 999px;
+  color: var(--green-dark);
+  font-size: 15px;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 8px 14px;
+}
+
 .waiting-result-card {
   background: #ffffff;
   border: 1px solid var(--line);

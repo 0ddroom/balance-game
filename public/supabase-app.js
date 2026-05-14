@@ -89,6 +89,10 @@ if (useSupabase) {
     reasonInput: $("reasonInput"),
     submitAnswerBtn: $("submitAnswerBtn"),
     waitingPanel: $("waitingPanel"),
+    waitingTitle: $("waitingTitle"),
+    waitingLiveStatus: $("waitingLiveStatus"),
+    waitingWritingCount: $("waitingWritingCount"),
+    waitingSubmittedCount: $("waitingSubmittedCount"),
     waitingSubtext: $("waitingSubtext"),
     waitingResultCard: $("waitingResultCard"),
     waitingResultTitle: $("waitingResultTitle"),
@@ -369,7 +373,7 @@ if (useSupabase) {
 
     if (!joined) return;
 
-    els.participantLiveCount.textContent = `${state.counts.connected}명이 응답 중`;
+    els.participantLiveCount.textContent = `${state.counts.writing}명이 응답 중`;
     els.participantSubmittedCount.textContent = `${state.counts.responded}명 제출`;
 
     if (state.status === "active" && state.question) {
@@ -383,7 +387,11 @@ if (useSupabase) {
       }
 
       if (alreadySubmitted) {
-        showWaiting("응답이 제출되었습니다. 결과 공개를 기다려 주세요.");
+        showWaiting({
+          title: "다른 분들의 응답을 기다리고 있습니다",
+          subtext: "응답이 제출되었습니다. 결과 공개를 기다려 주세요.",
+          showLiveStatus: true,
+        });
         return;
       }
 
@@ -401,7 +409,11 @@ if (useSupabase) {
       return;
     }
 
-    showWaiting("잠시만 기다려 주세요.", Boolean(state.lastRound));
+    showWaiting({
+      title: "진행자가 다음 질문을 준비하고 있습니다",
+      subtext: "잠시만 기다려 주세요.",
+      showLastRound: Boolean(state.lastRound),
+    });
   }
 
   function renderHostShareInfo() {
@@ -417,9 +429,13 @@ if (useSupabase) {
     }
   }
 
-  function showWaiting(subtext, showLastRound = false) {
+  function showWaiting({ title, subtext, showLastRound = false, showLiveStatus = false }) {
     els.waitingPanel.classList.remove("hidden");
+    els.waitingTitle.textContent = title;
     els.waitingSubtext.textContent = subtext;
+    els.waitingLiveStatus.classList.toggle("hidden", !showLiveStatus);
+    els.waitingWritingCount.textContent = `${state.counts.writing}명 응답 중`;
+    els.waitingSubmittedCount.textContent = `${state.counts.responded}명 제출`;
 
     if (showLastRound && state?.lastRound?.results) {
       els.waitingResultCard.classList.remove("hidden");
