@@ -1333,8 +1333,8 @@ if (useSupabase) {
 
     function updateSoundButton() {
       els.soundToggleBtn.setAttribute("aria-pressed", String(!muted));
-      els.soundToggleBtn.title = muted ? "사운드 꺼짐" : "사운드 켜짐";
-      els.soundToggleBtn.querySelector("span").textContent = muted ? "×" : "♪";
+      els.soundToggleBtn.title = muted ? "BGM 켜기" : "BGM 끄기";
+      els.soundToggleBtn.querySelector("span").textContent = muted ? "BGM on" : "BGM off";
     }
 
     return {
