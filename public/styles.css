@@ -615,47 +615,43 @@ select:focus {
 }
 
 .hourglass {
-  animation: flipHourglass 1.35s linear infinite;
-  height: 82px;
+  animation: flipHourglass 1.6s ease-in-out infinite;
+  border-bottom: 5px solid var(--green);
+  border-radius: 8px;
+  border-top: 5px solid var(--green);
+  height: 86px;
   margin-bottom: 16px;
   position: relative;
-  width: 54px;
+  width: 62px;
 }
 
 .hourglass::before,
 .hourglass::after,
 .hourglass span {
   content: "";
-  left: 50%;
   position: absolute;
-  transform: translateX(-50%);
-}
-
-.hourglass::before,
-.hourglass::after {
-  border: 4px solid var(--green);
-  height: 28px;
-  width: 42px;
 }
 
 .hourglass::before {
-  border-bottom: 0;
-  border-radius: 8px 8px 3px 3px;
-  top: 0;
+  background:
+    linear-gradient(135deg, transparent 0 47%, rgba(247, 169, 12, 0.88) 48% 52%, transparent 53% 100%),
+    linear-gradient(45deg, transparent 0 47%, rgba(35, 104, 216, 0.88) 48% 52%, transparent 53% 100%);
+  clip-path: polygon(8% 0, 92% 0, 56% 48%, 92% 100%, 8% 100%, 44% 52%);
+  inset: 9px 8px;
 }
 
 .hourglass::after {
-  border-radius: 3px 3px 8px 8px;
-  border-top: 0;
-  bottom: 0;
+  border-left: 4px solid var(--green);
+  border-right: 4px solid var(--green);
+  inset: 0 4px;
 }
 
 .hourglass span {
-  background: var(--amber);
-  border-radius: 999px;
-  height: 30px;
-  top: 26px;
-  width: 8px;
+  background:
+    radial-gradient(circle at 50% 26%, var(--amber) 0 4px, transparent 5px),
+    linear-gradient(var(--amber), var(--amber)) center 28px / 4px 31px no-repeat,
+    radial-gradient(ellipse at 50% 73%, var(--amber) 0 13px, transparent 14px);
+  inset: 12px 14px;
 }
 
 @keyframes flipHourglass {

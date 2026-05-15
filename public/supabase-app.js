@@ -441,7 +441,7 @@ if (useSupabase) {
 
       if (alreadySubmitted) {
         showWaiting({
-          title: "다른 분들의 응답을 기다리고 있습니다",
+          title: "응답 대기중",
           subtext: "응답이 제출되었습니다. 결과 공개를 기다려 주세요.",
           showLiveStatus: true,
         });
@@ -463,7 +463,7 @@ if (useSupabase) {
     }
 
     showWaiting({
-      title: "진행자가 다음 질문을 준비하고 있습니다",
+      title: "질문 작성중",
       subtext: "잠시만 기다려 주세요.",
       showLastRound: Boolean(state.lastRound),
     });
