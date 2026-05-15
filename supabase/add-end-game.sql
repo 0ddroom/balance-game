@@ -55,3 +55,5 @@ end;
 $$;
 
 grant execute on function public.balance_end_game(text, text) to anon, authenticated;
+
+notify pgrst, 'reload schema';
