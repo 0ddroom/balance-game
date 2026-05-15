@@ -38,6 +38,7 @@ if (useSupabase) {
       optionB: "밤에 조용히 끝내기",
     },
   ];
+  const pieColors = ["#0f9f6e", "#2368d8", "#f7a90c", "#f04438"];
 
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(window.location.search);
@@ -796,28 +797,59 @@ if (useSupabase) {
   }
 
   function resultGraphHtml(results) {
-    const rows = (results.options || [])
-      .map((option) => {
-        const width = Math.max(option.percent, option.count > 0 ? 4 : 0);
-        return `
-          <div class="result-row">
-            <div class="result-row-header">
-              <strong>${escapeHtml(option.label)}</strong>
+    const options = results.options || [];
+    const total = Number(results.total || options.reduce((sum, option) => sum + Number(option.count || 0), 0));
+
+    if (!options.length || total <= 0) {
+      return `<p class="muted-text">아직 제출된 응답이 없습니다.</p>`;
+    }
+
+    const gradient = pieGradient(options);
+    const ariaLabel = options
+      .map((option) => `${option.key}. ${option.label} ${option.count}명 ${option.percent}%`)
+      .join(", ");
+    const legend = options
+      .map(
+        (option, index) => `
+          <div class="pie-legend-row">
+            <span class="pie-swatch" style="background: ${pieColors[index % pieColors.length]}"></span>
+            <div>
+              <strong>${escapeHtml(option.key)}. ${escapeHtml(option.label)}</strong>
               <span>${option.count}명 · ${option.percent}%</span>
             </div>
-            <div class="bar-track" aria-label="${escapeHtml(option.label)} ${option.percent}%">
-              <span class="bar-fill" style="width: ${width}%"></span>
-            </div>
           </div>
-        `;
-      })
+        `,
+      )
       .join("");
 
-    return rows || `<p class="muted-text">아직 제출된 응답이 없습니다.</p>`;
+    return `
+      <div class="pie-result" role="img" aria-label="${escapeHtml(`응답 결과: ${ariaLabel}`)}">
+        <div class="pie-chart" style="background: ${gradient}">
+          <div class="pie-center">
+            <strong>${total}</strong>
+            <span>명 응답</span>
+          </div>
+        </div>
+        <div class="pie-legend">${legend}</div>
+      </div>
+    `;
   }
 
   function renderResultGraph(container, results) {
     container.innerHTML = resultGraphHtml(results || { options: [] });
+  }
+
+  function pieGradient(options) {
+    let cursor = 0;
+    const parts = options.map((option, index) => {
+      const start = cursor;
+      const percent = Math.max(0, Number(option.percent || 0));
+      const end = index === options.length - 1 ? 100 : Math.min(100, cursor + percent);
+      cursor = end;
+      return `${pieColors[index % pieColors.length]} ${start}% ${end}%`;
+    });
+
+    return `conic-gradient(${parts.join(", ")})`;
   }
 
   async function downloadHistoryImage() {
@@ -877,7 +909,7 @@ if (useSupabase) {
       const detailHeight = detailRows.length
         ? detailRows.reduce((sum, lines) => sum + Math.max(lines.length, 1) * 28 + 12, 0)
         : 34;
-      const height = 34 + questionLines.length * 36 + 28 + 112 + 22 + detailHeight + cardPadding * 2;
+      const height = 34 + questionLines.length * 36 + 28 + 186 + 22 + detailHeight + cardPadding * 2;
 
       return { round, questionLines, detailRows, height };
     });
@@ -921,25 +953,8 @@ if (useSupabase) {
       });
 
       innerY += 12;
-      (results.options || []).forEach((option, index) => {
-        const label = `${option.key}. ${option.label}`;
-        const meta = `${option.count}명 · ${option.percent}%`;
-        const barX = margin + cardPadding;
-        const barY = innerY + 26;
-        const barWidth = textWidth;
-        const fillWidth = Math.max((barWidth * Number(option.percent || 0)) / 100, option.count > 0 ? 8 : 0);
-
-        ctx.fillStyle = "#263241";
-        ctx.font = fonts.body;
-        ctx.fillText(label, barX, innerY);
-        ctx.fillStyle = "#64717f";
-        ctx.textAlign = "right";
-        ctx.fillText(meta, barX + barWidth, innerY);
-        ctx.textAlign = "left";
-        drawRoundRect(ctx, barX, barY, barWidth, 18, 9, "#e8eef6");
-        drawRoundRect(ctx, barX, barY, fillWidth, 18, 9, index === 0 ? "#0f9f6e" : "#2368d8");
-        innerY += 56;
-      });
+      drawCanvasPieResult(ctx, margin + cardPadding, innerY, textWidth, results, fonts);
+      innerY += 186;
 
       innerY += 12;
       ctx.fillStyle = "#111827";
@@ -1007,6 +1022,65 @@ if (useSupabase) {
       ctx.lineWidth = 1;
       ctx.stroke();
     }
+  }
+
+  function drawCanvasPieResult(ctx, x, y, width, results, fonts) {
+    const options = results.options || [];
+    const total = Number(results.total || options.reduce((sum, option) => sum + Number(option.count || 0), 0));
+    const radius = 76;
+    const centerX = x + radius;
+    const centerY = y + radius;
+    const legendX = x + radius * 2 + 34;
+    let legendY = y + 32;
+
+    if (!options.length || total <= 0) {
+      drawRoundRect(ctx, x, y + 18, width, 92, 16, "#f1f5f9", "#dce5f0");
+      ctx.fillStyle = "#64717f";
+      ctx.font = fonts.body;
+      ctx.fillText("아직 제출된 응답이 없습니다.", x + 22, y + 74);
+      return;
+    }
+
+    let startAngle = -Math.PI / 2;
+    options.forEach((option, index) => {
+      const isLast = index === options.length - 1;
+      const angle = isLast ? Math.PI * 1.5 : startAngle + (Number(option.percent || 0) / 100) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, angle);
+      ctx.closePath();
+      ctx.fillStyle = pieColors[index % pieColors.length];
+      ctx.fill();
+      startAngle = angle;
+    });
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 42, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.fillStyle = "#111827";
+    ctx.font = "900 30px Pretendard, Malgun Gothic, Segoe UI, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(total), centerX, centerY - 2);
+    ctx.fillStyle = "#64717f";
+    ctx.font = fonts.small;
+    ctx.fillText("명 응답", centerX, centerY + 24);
+    ctx.textAlign = "left";
+
+    options.forEach((option, index) => {
+      ctx.beginPath();
+      ctx.arc(legendX + 10, legendY - 8, 9, 0, Math.PI * 2);
+      ctx.fillStyle = pieColors[index % pieColors.length];
+      ctx.fill();
+
+      ctx.fillStyle = "#263241";
+      ctx.font = fonts.body;
+      ctx.fillText(`${option.key}. ${option.label}`, legendX + 30, legendY);
+      ctx.fillStyle = "#64717f";
+      ctx.font = fonts.small;
+      ctx.fillText(`${option.count}명 · ${option.percent}%`, legendX + 30, legendY + 28);
+      legendY += 62;
+    });
   }
 
   function renderQr(text) {
