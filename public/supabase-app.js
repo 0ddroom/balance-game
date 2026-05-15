@@ -769,7 +769,7 @@ if (useSupabase) {
       sfxGain = context.createGain();
 
       masterGain.gain.value = muted ? 0 : 0.82;
-      musicGain.gain.value = 2.88;
+      musicGain.gain.value = 7.2;
       sfxGain.gain.value = 0.56;
 
       musicGain.connect(masterGain);
