@@ -1,17 +1,17 @@
 :root {
-  color-scheme: dark;
-  --bg: #100d11;
-  --surface: rgba(28, 24, 31, 0.94);
-  --surface-strong: rgba(255, 196, 57, 0.13);
-  --text: #fff8ed;
-  --muted: #c6bab3;
-  --line: rgba(255, 248, 237, 0.16);
-  --green: #31d48a;
-  --green-dark: #91ffd0;
-  --blue: #4fc3ff;
-  --coral: #ff4d4d;
-  --amber: #ffc439;
-  --shadow: 0 22px 70px rgba(0, 0, 0, 0.46);
+  color-scheme: light;
+  --bg: #f4f7fb;
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-strong: #fff4d7;
+  --text: #161b22;
+  --muted: #64717f;
+  --line: rgba(30, 42, 58, 0.14);
+  --green: #0f9f6e;
+  --green-dark: #08714f;
+  --blue: #2368d8;
+  --coral: #f04438;
+  --amber: #f7a90c;
+  --shadow: 0 22px 64px rgba(31, 47, 70, 0.14);
   font-family:
     Inter, Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI",
     sans-serif;
@@ -25,9 +25,9 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    linear-gradient(115deg, rgba(255, 77, 77, 0.2), transparent 34%),
-    linear-gradient(245deg, rgba(79, 195, 255, 0.14), transparent 38%),
-    linear-gradient(180deg, #181116, #0d1012 72%),
+    linear-gradient(115deg, rgba(240, 68, 56, 0.16), transparent 34%),
+    linear-gradient(245deg, rgba(35, 104, 216, 0.13), transparent 38%),
+    linear-gradient(180deg, #fffaf4, #eef5ff 72%),
     var(--bg);
   color: var(--text);
   overflow-x: hidden;
@@ -44,8 +44,8 @@ body::after {
 
 body::before {
   background:
-    linear-gradient(90deg, rgba(255, 248, 237, 0.04) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(255, 248, 237, 0.035) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(30, 42, 58, 0.055) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(30, 42, 58, 0.045) 1px, transparent 1px);
   background-size: 52px 52px;
   mask-image: linear-gradient(180deg, black, transparent 88%);
 }
@@ -54,7 +54,7 @@ body::after {
   background: repeating-linear-gradient(
     -18deg,
     transparent 0 18px,
-    rgba(255, 196, 57, 0.055) 18px 20px,
+    rgba(247, 169, 12, 0.08) 18px 20px,
     transparent 20px 38px
   );
   opacity: 0.45;
@@ -65,7 +65,7 @@ body[data-room-status="active"]::after {
   background: repeating-linear-gradient(
     -18deg,
     transparent 0 16px,
-    rgba(255, 77, 77, 0.16) 16px 18px,
+    rgba(240, 68, 56, 0.18) 16px 18px,
     transparent 18px 34px
   );
 }
@@ -73,16 +73,16 @@ body[data-room-status="active"]::after {
 body[data-room-status="waiting"],
 body[data-room-status="closed"] {
   background:
-    linear-gradient(120deg, rgba(49, 212, 138, 0.16), transparent 38%),
-    linear-gradient(245deg, rgba(79, 195, 255, 0.12), transparent 42%),
-    linear-gradient(180deg, #101713, #0c1012 76%),
+    linear-gradient(120deg, rgba(15, 159, 110, 0.12), transparent 38%),
+    linear-gradient(245deg, rgba(35, 104, 216, 0.1), transparent 42%),
+    linear-gradient(180deg, #f9fffb, #edf6ff 76%),
     var(--bg);
 }
 
 body[data-room-status="ended"] {
   background:
-    linear-gradient(130deg, rgba(255, 196, 57, 0.13), transparent 32%),
-    linear-gradient(180deg, #151112, #08090a 78%),
+    linear-gradient(130deg, rgba(247, 169, 12, 0.13), transparent 32%),
+    linear-gradient(180deg, #fffaf1, #eef3fb 78%),
     var(--bg);
 }
 
@@ -128,7 +128,7 @@ button {
 
 .topbar h1 {
   font-size: clamp(28px, 5vw, 48px);
-  text-shadow: 0 0 24px rgba(255, 77, 77, 0.32);
+  text-shadow: 0 10px 24px rgba(240, 68, 56, 0.16);
 }
 
 .topbar-status {
@@ -150,8 +150,8 @@ button {
 
 .badge {
   align-items: center;
-  background: rgba(49, 212, 138, 0.13);
-  border: 1px solid rgba(49, 212, 138, 0.36);
+  background: rgba(15, 159, 110, 0.11);
+  border: 1px solid rgba(15, 159, 110, 0.28);
   border-radius: 999px;
   color: var(--green-dark);
   display: inline-flex;
@@ -163,15 +163,15 @@ button {
 }
 
 .badge.muted {
-  background: rgba(255, 248, 237, 0.08);
+  background: rgba(30, 42, 58, 0.06);
   border-color: var(--line);
   color: var(--muted);
 }
 
 .sound-toggle {
   align-items: center;
-  background: rgba(255, 196, 57, 0.13);
-  border: 1px solid rgba(255, 196, 57, 0.44);
+  background: rgba(247, 169, 12, 0.14);
+  border: 1px solid rgba(247, 169, 12, 0.34);
   border-radius: 999px;
   color: var(--amber);
   display: inline-flex;
@@ -184,7 +184,7 @@ button {
 }
 
 .sound-toggle[aria-pressed="false"] {
-  background: rgba(255, 248, 237, 0.08);
+  background: rgba(30, 42, 58, 0.06);
   border-color: var(--line);
   color: var(--muted);
 }
@@ -207,7 +207,7 @@ button {
 .modal {
   backdrop-filter: blur(18px);
   background:
-    linear-gradient(145deg, rgba(255, 248, 237, 0.08), rgba(255, 248, 237, 0.02)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 255, 0.88)),
     var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -250,7 +250,7 @@ button {
 .room-code-box {
   align-items: center;
   background: var(--surface-strong);
-  border: 1px solid rgba(255, 196, 57, 0.34);
+  border: 1px solid rgba(247, 169, 12, 0.3);
   border-radius: 8px;
   display: flex;
   justify-content: space-between;
@@ -264,7 +264,7 @@ button {
 }
 
 .field-label {
-  color: #f0ded2;
+  color: #3b4652;
   display: block;
   font-size: 13px;
   font-weight: 800;
@@ -274,8 +274,8 @@ button {
 input,
 textarea,
 select {
-  background: rgba(8, 9, 10, 0.55);
-  border: 1px solid rgba(255, 248, 237, 0.18);
+  background: #ffffff;
+  border: 1px solid rgba(30, 42, 58, 0.18);
   border-radius: 8px;
   color: var(--text);
   outline: none;
@@ -294,9 +294,9 @@ textarea {
 input:focus,
 textarea:focus,
 select:focus {
-  background: rgba(8, 9, 10, 0.7);
+  background: #ffffff;
   border-color: var(--amber);
-  box-shadow: 0 0 0 4px rgba(255, 196, 57, 0.16);
+  box-shadow: 0 0 0 4px rgba(247, 169, 12, 0.18);
 }
 
 .copy-row,
@@ -326,7 +326,7 @@ select:focus {
 
 .icon-button {
   aspect-ratio: 1;
-  background: rgba(255, 248, 237, 0.12);
+  background: rgba(30, 42, 58, 0.08);
   color: var(--text);
   padding: 0;
   width: 46px;
@@ -342,18 +342,18 @@ select:focus {
 
 .primary-action {
   background: linear-gradient(135deg, var(--amber), #ff784d);
-  box-shadow: 0 14px 30px rgba(255, 120, 77, 0.28);
+  box-shadow: 0 14px 30px rgba(255, 120, 77, 0.24);
   color: #160f10;
 }
 
 .secondary-action {
-  background: rgba(79, 195, 255, 0.14);
-  color: #bcecff;
+  background: rgba(35, 104, 216, 0.1);
+  color: #174ea6;
 }
 
 .danger-action {
   background: linear-gradient(135deg, var(--coral), #a8172f);
-  box-shadow: 0 14px 30px rgba(255, 77, 77, 0.3);
+  box-shadow: 0 14px 30px rgba(240, 68, 56, 0.25);
   color: #fff8ed;
 }
 
@@ -386,7 +386,7 @@ select:focus {
 
 .stat-stack div {
   align-items: center;
-  background: rgba(8, 9, 10, 0.34);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: flex;
@@ -435,8 +435,8 @@ select:focus {
 
 .question-display {
   background:
-    linear-gradient(135deg, rgba(255, 77, 77, 0.12), rgba(79, 195, 255, 0.08)),
-    rgba(8, 9, 10, 0.38);
+    linear-gradient(135deg, rgba(240, 68, 56, 0.09), rgba(35, 104, 216, 0.07)),
+    rgba(255, 255, 255, 0.78);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 22px;
@@ -459,7 +459,7 @@ select:focus {
 }
 
 .choice-pair div {
-  background: rgba(8, 9, 10, 0.32);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line);
   border-radius: 8px;
   min-height: 88px;
@@ -512,9 +512,8 @@ select:focus {
 
 .choice-button {
   background:
-    linear-gradient(145deg, rgba(255, 248, 237, 0.08), rgba(255, 248, 237, 0.02)),
-    rgba(10, 12, 14, 0.78);
-  border: 2px solid rgba(255, 248, 237, 0.17);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(245, 249, 255, 0.94));
+  border: 2px solid rgba(30, 42, 58, 0.14);
   border-radius: 8px;
   color: var(--text);
   min-height: 128px;
@@ -529,7 +528,7 @@ select:focus {
 }
 
 .choice-button::after {
-  background: linear-gradient(90deg, transparent, rgba(255, 248, 237, 0.18), transparent);
+  background: linear-gradient(90deg, transparent, rgba(247, 169, 12, 0.18), transparent);
   content: "";
   inset: 0;
   pointer-events: none;
@@ -548,15 +547,15 @@ body[data-room-status="active"] .choice-button::after {
 .choice-button.selected {
   border-color: var(--amber);
   box-shadow:
-    0 0 0 4px rgba(255, 196, 57, 0.16),
-    0 0 28px rgba(255, 196, 57, 0.24);
+    0 0 0 4px rgba(247, 169, 12, 0.18),
+    0 16px 34px rgba(247, 169, 12, 0.18);
 }
 
 .choice-button[data-choice="B"].selected {
   border-color: var(--blue);
   box-shadow:
-    0 0 0 4px rgba(79, 195, 255, 0.16),
-    0 0 28px rgba(79, 195, 255, 0.2);
+    0 0 0 4px rgba(35, 104, 216, 0.14),
+    0 16px 34px rgba(35, 104, 216, 0.16);
 }
 
 #submitAnswerBtn {
@@ -581,8 +580,8 @@ body[data-room-status="active"] .choice-button::after {
 }
 
 .waiting-live-status span {
-  background: rgba(49, 212, 138, 0.13);
-  border: 1px solid rgba(49, 212, 138, 0.34);
+  background: rgba(15, 159, 110, 0.1);
+  border: 1px solid rgba(15, 159, 110, 0.26);
   border-radius: 999px;
   color: var(--green-dark);
   font-size: 15px;
@@ -592,7 +591,7 @@ body[data-room-status="active"] .choice-button::after {
 }
 
 .waiting-result-card {
-  background: rgba(8, 9, 10, 0.32);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line);
   border-radius: 8px;
   margin-top: 24px;
@@ -729,9 +728,9 @@ body[data-room-status="active"] .choice-button::after {
 
 .end-panel {
   background:
-    linear-gradient(135deg, rgba(255, 196, 57, 0.12), rgba(255, 77, 77, 0.1)),
-    rgba(8, 9, 10, 0.34);
-  border: 1px solid rgba(255, 196, 57, 0.28);
+    linear-gradient(135deg, rgba(247, 169, 12, 0.12), rgba(240, 68, 56, 0.08)),
+    rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(247, 169, 12, 0.26);
   border-radius: 8px;
   padding: 24px;
 }
@@ -775,7 +774,7 @@ body[data-room-status="active"] .choice-button::after {
 }
 
 .bar-track {
-  background: rgba(255, 248, 237, 0.12);
+  background: rgba(30, 42, 58, 0.1);
   border-radius: 999px;
   height: 22px;
   overflow: hidden;
@@ -819,7 +818,7 @@ body[data-room-status="active"] .choice-button::after {
 }
 
 .detail-row {
-  background: rgba(8, 9, 10, 0.3);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
@@ -841,10 +840,10 @@ body[data-room-status="active"] .choice-button::after {
 }
 
 .toast {
-  background: #fff8ed;
+  background: #161b22;
   border-radius: 8px;
   bottom: 22px;
-  color: #161112;
+  color: #ffffff;
   font-weight: 800;
   left: 50%;
   max-width: min(560px, calc(100vw - 32px));
