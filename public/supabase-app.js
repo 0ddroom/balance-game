@@ -66,6 +66,7 @@ if (useSupabase) {
     questionInput: $("questionInput"),
     optionAInput: $("optionAInput"),
     optionBInput: $("optionBInput"),
+    startQuestionBtn: $("startQuestionBtn"),
     hostLivePanel: $("hostLivePanel"),
     hostQuestionText: $("hostQuestionText"),
     hostOptionA: $("hostOptionA"),
@@ -370,16 +371,18 @@ if (useSupabase) {
     els.hostRespondedCount.textContent = `${state.counts.responded}명`;
     els.hostWritingCount.textContent = `${state.counts.writing}명`;
     els.hostStatusBadge.textContent = statusText(state.status);
+    const canStartQuestion = ["waiting", "ended"].includes(state.status);
     els.hostStatusTitle.textContent =
       state.status === "active"
         ? "응답을 받고 있습니다"
         : state.status === "closed"
           ? "결과 공개 중"
           : state.status === "ended"
-            ? "게임 종료"
+            ? "게임 종료 - 같은 링크로 재개할 수 있습니다"
             : "다음 질문 준비";
 
-    els.questionForm.classList.toggle("hidden", state.status !== "waiting");
+    els.questionForm.classList.toggle("hidden", !canStartQuestion);
+    els.startQuestionBtn.textContent = state.status === "ended" ? "같은 링크로 다시 시작" : "질문 시작";
     els.hostLivePanel.classList.toggle("hidden", state.status !== "active");
     els.hostResultPanel.classList.toggle("hidden", state.status !== "closed");
     els.hostEndPanel.classList.toggle("hidden", !["waiting"].includes(state.status));
