@@ -492,6 +492,23 @@ select:focus {
   margin-top: 22px;
 }
 
+.guide-panel {
+  background: rgba(35, 104, 216, 0.07);
+  border: 1px solid rgba(35, 104, 216, 0.15);
+  border-radius: 8px;
+  margin-top: 22px;
+  padding: 18px;
+}
+
+.guide-panel ul {
+  color: var(--muted);
+  display: grid;
+  gap: 8px;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 20px;
+}
+
 .participant-status-line {
   display: flex;
   flex-wrap: wrap;
@@ -698,6 +715,106 @@ select:focus {
 
 .ended-panel {
   min-height: 420px;
+}
+
+.history-panel {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+  padding-top: 22px;
+}
+
+.history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.history-actions .primary-action,
+.history-actions .secondary-action {
+  min-height: 40px;
+}
+
+.history-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.history-list {
+  display: grid;
+  gap: 14px;
+}
+
+.history-round {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.history-round-header {
+  align-items: flex-start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.history-round-header > span {
+  background: rgba(15, 159, 110, 0.12);
+  border: 1px solid rgba(15, 159, 110, 0.22);
+  border-radius: 999px;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+.history-round-header h4 {
+  font-size: 22px;
+  line-height: 1.3;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.history-round-header p {
+  color: var(--muted);
+  font-weight: 800;
+  margin: 6px 0 0;
+}
+
+.history-details {
+  display: grid;
+  gap: 8px;
+}
+
+.history-detail-row {
+  background: rgba(247, 250, 255, 0.86);
+  border: 1px solid rgba(30, 42, 58, 0.09);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.history-detail-row strong {
+  color: var(--text);
+}
+
+.history-detail-row span {
+  color: #174ea6;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.history-detail-row p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
 }
 
 .result-graph {

@@ -81,6 +81,10 @@ if (useSupabase) {
     endGameWaitingBtn: $("endGameWaitingBtn"),
     hostEndPanel: $("hostEndPanel"),
     hostEndedPanel: $("hostEndedPanel"),
+    hostHistoryPanel: $("hostHistoryPanel"),
+    hostHistoryList: $("hostHistoryList"),
+    refreshHistoryBtn: $("refreshHistoryBtn"),
+    downloadHistoryBtn: $("downloadHistoryBtn"),
     joinPanel: $("joinPanel"),
     joinForm: $("joinForm"),
     nicknameInput: $("nicknameInput"),
@@ -109,10 +113,6 @@ if (useSupabase) {
     participantResultGraph: $("participantResultGraph"),
     participantDetailsBtn: $("participantDetailsBtn"),
     endedPanel: $("endedPanel"),
-    endedResultCard: $("endedResultCard"),
-    endedResultTitle: $("endedResultTitle"),
-    endedResultGraph: $("endedResultGraph"),
-    endedDetailsBtn: $("endedDetailsBtn"),
     detailsModal: $("detailsModal"),
     detailsRows: $("detailsRows"),
     closeDetailsBtn: $("closeDetailsBtn"),
@@ -129,6 +129,10 @@ if (useSupabase) {
   let lastQrLink = "";
   let toastTimer = null;
   let onlineParticipants = 0;
+  let historyState = null;
+  let historyLoading = false;
+  let historyError = "";
+  let historyRequestKey = "";
 
   const clientId = getClientId();
   const soundEngine = createSoundEngine();
@@ -161,11 +165,12 @@ if (useSupabase) {
     els.closeQuestionBtn.addEventListener("click", closeQuestion);
     els.prepareNextBtn.addEventListener("click", prepareNext);
     els.endGameBtn.addEventListener("click", endGame);
-    els.endGameWaitingBtn.addEventListener("click", endGame);
+    els.endGameWaitingBtn?.addEventListener("click", endGame);
     els.openDetailsBtn.addEventListener("click", openDetails);
     els.waitingDetailsBtn.addEventListener("click", openDetails);
     els.participantDetailsBtn.addEventListener("click", openDetails);
-    els.endedDetailsBtn.addEventListener("click", openDetails);
+    els.refreshHistoryBtn?.addEventListener("click", () => loadHistory({ force: true }));
+    els.downloadHistoryBtn?.addEventListener("click", downloadHistoryImage);
     els.closeDetailsBtn.addEventListener("click", closeDetails);
     els.soundToggleBtn.addEventListener("click", () => soundEngine.toggleMuted());
     document.addEventListener("pointerdown", () => soundEngine.unlock(), { passive: true });
@@ -398,6 +403,9 @@ if (useSupabase) {
     if (state.results) {
       renderResultGraph(els.hostResultGraph, state.results);
     }
+
+    renderHostHistory();
+    queueHistoryLoad();
   }
 
   function renderParticipant() {
@@ -408,7 +416,6 @@ if (useSupabase) {
     els.waitingResultCard.classList.add("hidden");
     els.participantResultPanel.classList.add("hidden");
     els.endedPanel.classList.add("hidden");
-    els.endedResultCard.classList.add("hidden");
 
     if (state?.status === "ended") {
       els.joinPanel.classList.add("hidden");
@@ -463,12 +470,117 @@ if (useSupabase) {
 
   function renderEndedPanel() {
     els.endedPanel.classList.remove("hidden");
+  }
 
-    if (state.lastRound?.results) {
-      els.endedResultCard.classList.remove("hidden");
-      els.endedResultTitle.textContent = state.lastRound.question?.text || "최종 응답 결과";
-      renderResultGraph(els.endedResultGraph, state.lastRound.results);
+  function shouldShowHistory() {
+    return role === "host" && (["closed", "ended"].includes(state?.status) || Boolean(historyState?.rounds?.length));
+  }
+
+  function queueHistoryLoad() {
+    if (!shouldShowHistory() || historyLoading) return;
+
+    const key = [
+      roomId,
+      state?.status || "",
+      state?.question?.id || "",
+      state?.lastRound?.endedAt || "",
+    ].join(":");
+
+    if (historyRequestKey === key && historyState) return;
+    historyRequestKey = key;
+    void loadHistory({ silent: true });
+  }
+
+  async function loadHistory({ silent = false, force = false } = {}) {
+    if (!roomId || role !== "host" || historyLoading) return;
+
+    if (force) historyRequestKey = "";
+
+    historyLoading = true;
+    renderHostHistory();
+
+    try {
+      const { data, error } = await client.rpc("balance_room_history", {
+        p_room_id: roomId,
+        p_host_key: hostKey,
+      });
+      if (error) throw error;
+
+      historyState = data || { roomId, rounds: [] };
+      historyError = "";
+    } catch (error) {
+      historyError = String(error.message || error);
+      if (historyError.includes("balance_room_history")) {
+        historyError = "Supabase에 누적 현황 SQL을 먼저 적용해 주세요.";
+      }
+      if (!silent) showToast(historyError);
+    } finally {
+      historyLoading = false;
+      renderHostHistory();
     }
+  }
+
+  function renderHostHistory() {
+    if (!els.hostHistoryPanel || !els.hostHistoryList) return;
+
+    const visible = shouldShowHistory();
+    els.hostHistoryPanel.classList.toggle("hidden", !visible);
+    if (!visible) return;
+
+    if (historyLoading && !historyState) {
+      els.hostHistoryList.innerHTML = `<p class="muted-text">누적 현황을 불러오는 중입니다.</p>`;
+      if (els.downloadHistoryBtn) els.downloadHistoryBtn.disabled = true;
+      return;
+    }
+
+    if (historyError) {
+      els.hostHistoryList.innerHTML = `<p class="muted-text">${escapeHtml(historyError)}</p>`;
+      if (els.downloadHistoryBtn) els.downloadHistoryBtn.disabled = true;
+      return;
+    }
+
+    const rounds = historyState?.rounds || [];
+    if (els.downloadHistoryBtn) els.downloadHistoryBtn.disabled = rounds.length === 0;
+
+    if (!rounds.length) {
+      els.hostHistoryList.innerHTML = `<p class="muted-text">아직 누적된 질문 현황이 없습니다.</p>`;
+      return;
+    }
+
+    els.hostHistoryList.innerHTML = rounds.map(renderHistoryRound).join("");
+  }
+
+  function renderHistoryRound(round) {
+    const rows = round.rows || [];
+    const question = round.question || {};
+    const total = round.results?.total || 0;
+    const detailRows = rows.length
+      ? rows
+          .map(
+            (row) => `
+              <div class="history-detail-row">
+                <strong>${escapeHtml(row.nickname || "익명")}</strong>
+                <span>${escapeHtml(row.choice || "")}. ${escapeHtml(row.choiceLabel || "")}</span>
+                <p>${escapeHtml(row.reason || "이유 미작성")}</p>
+              </div>
+            `,
+          )
+          .join("")
+      : `<p class="muted-text">제출된 응답이 없습니다.</p>`;
+
+    return `
+      <article class="history-round">
+        <div class="history-round-header">
+          <span>Q${escapeHtml(String(round.roundNumber || ""))}</span>
+          <div>
+            <h4>${escapeHtml(question.text || "질문 없음")}</h4>
+            <p>${total}명 응답</p>
+          </div>
+        </div>
+        <div class="result-graph">${resultGraphHtml(round.results || { options: [] })}</div>
+        <div class="history-details">${detailRows}</div>
+      </article>
+    `;
   }
 
   function renderHostShareInfo() {
@@ -683,7 +795,7 @@ if (useSupabase) {
     }
   }
 
-  function renderResultGraph(container, results) {
+  function resultGraphHtml(results) {
     const rows = (results.options || [])
       .map((option) => {
         const width = Math.max(option.percent, option.count > 0 ? 4 : 0);
@@ -701,7 +813,200 @@ if (useSupabase) {
       })
       .join("");
 
-    container.innerHTML = rows || `<p class="muted-text">아직 제출된 응답이 없습니다.</p>`;
+    return rows || `<p class="muted-text">아직 제출된 응답이 없습니다.</p>`;
+  }
+
+  function renderResultGraph(container, results) {
+    container.innerHTML = resultGraphHtml(results || { options: [] });
+  }
+
+  async function downloadHistoryImage() {
+    if (!historyState?.rounds?.length && !historyLoading) {
+      await loadHistory({ silent: true, force: true });
+    }
+
+    const rounds = historyState?.rounds || [];
+    if (!rounds.length) {
+      showToast(historyError || "다운로드할 누적 현황이 없습니다.");
+      return;
+    }
+
+    const canvas = createHistoryCanvas(rounds);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        showToast("이미지를 만들지 못했습니다.");
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `balance-game-${roomId}-history.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, "image/png");
+  }
+
+  function createHistoryCanvas(rounds) {
+    const scale = 2;
+    const width = 1200;
+    const margin = 56;
+    const cardPadding = 28;
+    const contentWidth = width - margin * 2;
+    const textWidth = contentWidth - cardPadding * 2;
+    const measureCanvas = document.createElement("canvas");
+    const measure = measureCanvas.getContext("2d");
+    const fonts = {
+      title: "800 44px Pretendard, Malgun Gothic, Segoe UI, sans-serif",
+      subtitle: "700 20px Pretendard, Malgun Gothic, Segoe UI, sans-serif",
+      round: "900 24px Pretendard, Malgun Gothic, Segoe UI, sans-serif",
+      question: "800 30px Pretendard, Malgun Gothic, Segoe UI, sans-serif",
+      body: "600 21px Pretendard, Malgun Gothic, Segoe UI, sans-serif",
+      small: "600 17px Pretendard, Malgun Gothic, Segoe UI, sans-serif",
+    };
+
+    const prepared = rounds.map((round) => {
+      const question = round.question || {};
+      const questionLines = wrapCanvasText(measure, question.text || "질문 없음", textWidth, fonts.question);
+      const detailRows = (round.rows || []).map((row) => {
+        const text = `${row.nickname || "익명"} · ${row.choice || ""}. ${row.choiceLabel || ""} · ${row.reason || "이유 미작성"}`;
+        return wrapCanvasText(measure, text, textWidth, fonts.body);
+      });
+      const detailHeight = detailRows.length
+        ? detailRows.reduce((sum, lines) => sum + Math.max(lines.length, 1) * 28 + 12, 0)
+        : 34;
+      const height = 34 + questionLines.length * 36 + 28 + 112 + 22 + detailHeight + cardPadding * 2;
+
+      return { round, questionLines, detailRows, height };
+    });
+
+    const totalResponses = rounds.reduce((sum, round) => sum + (round.results?.total || 0), 0);
+    const height = margin + 92 + 36 + prepared.reduce((sum, item) => sum + item.height + 22, 0) + margin;
+    const canvas = document.createElement("canvas");
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+
+    const ctx = canvas.getContext("2d");
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "#fbfdff";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = "#111827";
+    ctx.font = fonts.title;
+    ctx.fillText("밸런스 게임 누적 현황", margin, margin + 42);
+    ctx.fillStyle = "#64717f";
+    ctx.font = fonts.subtitle;
+    ctx.fillText(`방 ${roomId} · 질문 ${rounds.length}개 · 누적 응답 ${totalResponses}명`, margin, margin + 80);
+
+    let y = margin + 120;
+    prepared.forEach((item) => {
+      const { round, questionLines, detailRows } = item;
+      const results = round.results || { options: [] };
+
+      drawRoundRect(ctx, margin, y, contentWidth, item.height, 18, "#ffffff", "#dce5f0");
+
+      let innerY = y + cardPadding;
+      ctx.fillStyle = "#0f9f6e";
+      ctx.font = fonts.round;
+      ctx.fillText(`Q${round.roundNumber || ""}`, margin + cardPadding, innerY + 24);
+
+      ctx.fillStyle = "#111827";
+      ctx.font = fonts.question;
+      innerY += 44;
+      questionLines.forEach((line) => {
+        ctx.fillText(line, margin + cardPadding, innerY);
+        innerY += 36;
+      });
+
+      innerY += 12;
+      (results.options || []).forEach((option, index) => {
+        const label = `${option.key}. ${option.label}`;
+        const meta = `${option.count}명 · ${option.percent}%`;
+        const barX = margin + cardPadding;
+        const barY = innerY + 26;
+        const barWidth = textWidth;
+        const fillWidth = Math.max((barWidth * Number(option.percent || 0)) / 100, option.count > 0 ? 8 : 0);
+
+        ctx.fillStyle = "#263241";
+        ctx.font = fonts.body;
+        ctx.fillText(label, barX, innerY);
+        ctx.fillStyle = "#64717f";
+        ctx.textAlign = "right";
+        ctx.fillText(meta, barX + barWidth, innerY);
+        ctx.textAlign = "left";
+        drawRoundRect(ctx, barX, barY, barWidth, 18, 9, "#e8eef6");
+        drawRoundRect(ctx, barX, barY, fillWidth, 18, 9, index === 0 ? "#0f9f6e" : "#2368d8");
+        innerY += 56;
+      });
+
+      innerY += 12;
+      ctx.fillStyle = "#111827";
+      ctx.font = fonts.small;
+      ctx.fillText("세부 현황", margin + cardPadding, innerY);
+      innerY += 30;
+
+      ctx.fillStyle = "#263241";
+      ctx.font = fonts.body;
+      if (!detailRows.length) {
+        ctx.fillText("제출된 응답이 없습니다.", margin + cardPadding, innerY);
+      } else {
+        detailRows.forEach((lines) => {
+          lines.forEach((line) => {
+            ctx.fillText(line, margin + cardPadding, innerY);
+            innerY += 28;
+          });
+          innerY += 12;
+        });
+      }
+
+      y += item.height + 22;
+    });
+
+    return canvas;
+  }
+
+  function wrapCanvasText(ctx, text, maxWidth, font) {
+    ctx.font = font;
+    const chars = Array.from(String(text || ""));
+    const lines = [];
+    let line = "";
+
+    chars.forEach((char) => {
+      const testLine = line + char;
+      if (line && ctx.measureText(testLine).width > maxWidth) {
+        lines.push(line);
+        line = char.trimStart();
+      } else {
+        line = testLine;
+      }
+    });
+
+    if (line) lines.push(line);
+    return lines.length ? lines : [""];
+  }
+
+  function drawRoundRect(ctx, x, y, width, height, radius, fill, stroke = "") {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
   }
 
   function renderQr(text) {
