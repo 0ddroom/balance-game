@@ -78,8 +78,8 @@ export async function redisPipeline(commands, env = process.env) {
 }
 
 function redisConfig(env) {
-  const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
-  const token = env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN;
+  const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL || env.STORAGE_REST_API_URL;
+  const token = env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN || env.STORAGE_REST_API_TOKEN;
 
   if (!url || !token) {
     throw new Error("Redis 환경변수(KV_REST_API_URL/KV_REST_API_TOKEN)를 Vercel에 설정해 주세요.");
