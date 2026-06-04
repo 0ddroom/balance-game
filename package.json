@@ -1,0 +1,12 @@
+{
+  "name": "balance-game-live",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/room-core.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

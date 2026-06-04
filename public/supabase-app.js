@@ -1,20 +1,26 @@
 const config = window.BALANCE_GAME_CONFIG || {};
-const useSupabase = Boolean(config.SUPABASE_URL && config.SUPABASE_ANON_KEY && !config.USE_NODE_SERVER);
+const useApiServer = Boolean(config.USE_VERCEL_API || config.USE_NODE_SERVER || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY);
+const useSupabase = Boolean(config.SUPABASE_URL && config.SUPABASE_ANON_KEY && !config.USE_NODE_SERVER && !config.USE_VERCEL_API);
 
-if (useSupabase) {
+if (useSupabase || useApiServer) {
   const { createClient } = window.supabase || {};
+  let client = null;
 
-  if (!createClient) {
+  if (useSupabase && !createClient) {
     throw new Error("Supabase SDK를 불러오지 못했습니다.");
   }
 
-  const client = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
+  if (useSupabase) {
+    client = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+  } else {
+    client = createApiClient();
+  }
 
   const presets = [
     {
@@ -124,6 +130,7 @@ if (useSupabase) {
   let hostKey = params.get("key") || "";
   let role = initialHost ? "host" : "participant";
   let roomChannel = null;
+  let pollTimer = null;
   let state = null;
   let selectedChoice = "";
   let formQuestionId = "";
@@ -140,6 +147,40 @@ if (useSupabase) {
 
   bindEvents();
   init();
+
+  function createApiClient() {
+    return {
+      async rpc(name, payload = {}) {
+        try {
+          const response = await fetch(`api/rpc/${encodeURIComponent(name)}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+          const body = await response.json().catch(() => null);
+
+          if (!response.ok) {
+            return {
+              data: null,
+              error: new Error(body?.error || "요청을 처리하지 못했습니다."),
+            };
+          }
+
+          return {
+            data: body,
+            error: null,
+          };
+        } catch (error) {
+          return {
+            data: null,
+            error,
+          };
+        }
+      },
+    };
+  }
 
   function getClientId() {
     const existing = localStorage.getItem("balanceGameClientId");
@@ -266,6 +307,14 @@ if (useSupabase) {
   async function subscribeRoom() {
     if (!roomId) return;
 
+    if (!useSupabase) {
+      startPolling();
+      await loadState();
+      return;
+    }
+
+    stopPolling();
+
     if (roomChannel) {
       await client.removeChannel(roomChannel);
       roomChannel = null;
@@ -300,6 +349,19 @@ if (useSupabase) {
       });
   }
 
+  function startPolling() {
+    stopPolling();
+    pollTimer = window.setInterval(() => {
+      loadState();
+    }, role === "host" ? 900 : 1100);
+  }
+
+  function stopPolling() {
+    if (!pollTimer) return;
+    window.clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
   function countOnlineParticipants() {
     if (!roomChannel) return 0;
 
@@ -327,6 +389,9 @@ if (useSupabase) {
       if (error) throw error;
 
       state = data;
+      if (!useSupabase) {
+        onlineParticipants = data?.counts?.connected || 0;
+      }
       render();
     } catch (error) {
       showToast(error.message);
